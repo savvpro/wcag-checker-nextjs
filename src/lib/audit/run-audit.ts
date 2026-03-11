@@ -1,6 +1,6 @@
 import { load } from "cheerio";
 import OpenAI from "openai";
-import { chromium } from "playwright";
+import chromium from "@sparticuz/chromium";
 import { z } from "zod";
 
 import { getManualChecks } from "@/lib/audit/manual-checks";
@@ -400,20 +400,37 @@ async function fetchHtml(normalizedUrl: string): Promise<string> {
   }
 }
 
+async function launchScreenshotBrowser() {
+  if (process.env.VERCEL) {
+    const { chromium: playwrightChromium } = await import("playwright-core");
+    const executablePath = await chromium.executablePath();
+
+    return playwrightChromium.launch({
+      args: chromium.args,
+      executablePath,
+      headless: true,
+    });
+  }
+
+  const { chromium: localChromium } = await import("playwright");
+  return localChromium.launch({ headless: true });
+}
+
 async function captureScreenshot(normalizedUrl: string): Promise<string | undefined> {
-  let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
+  let browser: Awaited<ReturnType<typeof launchScreenshotBrowser>> | undefined;
 
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await launchScreenshotBrowser();
     const page = await browser.newPage({
       viewport: { width: 1440, height: 1024 },
       deviceScaleFactor: 1,
     });
 
     await page.goto(normalizedUrl, {
-      waitUntil: "networkidle",
+      waitUntil: "domcontentloaded",
       timeout: 30000,
     });
+    await page.waitForTimeout(1500);
 
     const buffer = await page.screenshot({
       type: "jpeg",
@@ -422,7 +439,12 @@ async function captureScreenshot(normalizedUrl: string): Promise<string | undefi
     });
 
     return `data:image/jpeg;base64,${buffer.toString("base64")}`;
-  } catch {
+  } catch (error) {
+    console.error("Screenshot capture failed", {
+      url: normalizedUrl,
+      message: error instanceof Error ? error.message : "Unknown screenshot error",
+      environment: process.env.VERCEL ? "vercel" : "local",
+    });
     return undefined;
   } finally {
     await browser?.close();

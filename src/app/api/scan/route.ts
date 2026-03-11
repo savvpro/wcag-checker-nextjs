@@ -3,6 +3,9 @@ import { z } from "zod";
 
 import { runAudit } from "@/lib/audit/run-audit";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const requestSchema = z.object({
   url: z.string().trim().min(1),
 });
