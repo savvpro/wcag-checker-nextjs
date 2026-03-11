@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -47,6 +47,13 @@ const tabMeta: Record<
   },
 };
 
+const loadingMessages = [
+  "Fetching the page HTML and normalizing the URL.",
+  "Running automated accessibility checks against the document structure.",
+  "Generating the report summary, counts, and manual review checklist.",
+  "Capturing a screenshot preview when the site allows it.",
+];
+
 function scoreTone(score: number) {
   if (score >= 90) {
     return "text-[var(--moss)]";
@@ -76,19 +83,34 @@ function issueTone(status: AuditIssue["status"]) {
 }
 
 export function AuditWorkbench() {
-  const [url, setUrl] = useState("https://example.com");
+  const [url, setUrl] = useState("");
   const [report, setReport] = useState<AuditReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<AuditTab>("critical");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [isPending, startTransition] = useTransition();
 
   const filteredIssues = report ? report.issues.filter((issue) => issue.status === activeTab) : [];
+
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingStep(0);
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setLoadingStep((current) => (current + 1) % loadingMessages.length);
+    }, 1800);
+
+    return () => window.clearInterval(interval);
+  }, [isLoading]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setIsLoading(true);
+    setLoadingStep(0);
 
     void (async () => {
       try {
@@ -170,6 +192,42 @@ export function AuditWorkbench() {
                 </div>
               ) : null}
             </form>
+
+            {isLoading ? (
+              <div className="rounded-[24px] border border-[rgba(39,75,56,0.12)] bg-[rgba(255,255,255,0.66)] p-4 shadow-[0_14px_40px_rgba(44,57,41,0.06)]">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-full bg-[rgba(39,75,56,0.08)] p-2 text-[var(--moss)]">
+                    <LoaderCircle className="h-5 w-5 animate-spin" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[rgba(31,36,31,0.9)]">Audit in progress</p>
+                    <p className="mt-1 text-sm leading-6 text-[rgba(31,36,31,0.68)]">
+                      {loadingMessages[loadingStep]}
+                    </p>
+                    <div className="mt-4 h-2 overflow-hidden rounded-full bg-[rgba(39,75,56,0.08)]">
+                      <div
+                        className="h-full rounded-full bg-[linear-gradient(90deg,rgba(39,75,56,0.85)_0%,rgba(90,143,115,0.65)_100%)] transition-all duration-500"
+                        style={{ width: `${((loadingStep + 1) / loadingMessages.length) * 100}%` }}
+                      />
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {loadingMessages.map((message, index) => (
+                        <span
+                          key={message}
+                          className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                            index === loadingStep
+                              ? "bg-[rgba(39,75,56,0.12)] text-[var(--moss)]"
+                              : "bg-[rgba(39,75,56,0.05)] text-[rgba(31,36,31,0.5)]"
+                          }`}
+                        >
+                          {index + 1}. {message}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="glass-panel rounded-[28px] border border-[var(--line)] p-6">
