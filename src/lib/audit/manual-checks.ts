@@ -84,6 +84,7 @@ export function getManualChecks(): AuditIssue[] {
   return manualChecks.map((check) => ({
     id: `manual-${check.id}`,
     ruleId: check.id,
+    source: "manual",
     title: check.title,
     description: check.description,
     status: "manual",

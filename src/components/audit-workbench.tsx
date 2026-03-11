@@ -82,6 +82,18 @@ function issueTone(status: AuditIssue["status"]) {
   return "bg-[rgba(79,88,79,0.08)] text-[rgba(43,51,43,0.78)]";
 }
 
+function sourceTone(source: AuditIssue["source"]) {
+  if (source === "rendered") {
+    return "bg-[rgba(30,87,153,0.10)] text-[rgba(30,87,153,0.92)]";
+  }
+
+  if (source === "html") {
+    return "bg-[rgba(39,75,56,0.08)] text-[rgba(39,75,56,0.92)]";
+  }
+
+  return "bg-[rgba(185,133,44,0.10)] text-[rgba(120,86,18,0.92)]";
+}
+
 export function AuditWorkbench() {
   const [url, setUrl] = useState("");
   const [report, setReport] = useState<AuditReport | null>(null);
@@ -408,6 +420,13 @@ export function AuditWorkbench() {
                                   : issue.status === "passed"
                                     ? "Passed"
                                     : "Not applicable"}
+                            </span>
+                            <span className={`rounded-full px-3 py-1 text-xs font-medium ${sourceTone(issue.source)}`}>
+                              {issue.source === "rendered"
+                                ? "Rendered"
+                                : issue.source === "html"
+                                  ? "HTML"
+                                  : "Manual"}
                             </span>
                             {issue.helpUrl ? (
                               <a

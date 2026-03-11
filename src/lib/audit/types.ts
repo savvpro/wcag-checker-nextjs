@@ -6,10 +6,12 @@ export type AuditScoreStatus =
   | "Automated accessibility issues detected";
 
 export type AuditIssueStatus = "critical" | "passed" | "manual" | "not_applicable";
+export type AuditIssueSource = "html" | "rendered" | "manual";
 
 export type AuditIssue = {
   id: string;
   ruleId: string;
+  source: AuditIssueSource;
   title: string;
   description: string;
   status: AuditIssueStatus;
